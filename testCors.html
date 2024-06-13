@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CORS Test</title>
+</head>
+<body>
+  <h1>CORS Test</h1>
+  <button id="testButton">Test CORS</button>
+  <script>
+    document.getElementById('testButton').addEventListener('click', () => {
+      fetch('http://localhost:5000/')
+        .then(response => response.json())
+        .then(data => console.log(data))
+        .catch(error => console.error('Error:', error));
+    });
+  </script>
+</body>
+</html>
