@@ -1,13 +1,12 @@
-package main
+package ghttp
 
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/victorguidi/ghttp/ghttp"
 )
 
 var (
@@ -15,12 +14,65 @@ var (
 	put  = map[string]any{"name": "John Wick", "age": 30}
 )
 
+func test(c Context) error {
+	type Response struct {
+		Name string `json:"name"`
+	}
+	var resp Response
+	resp.Name = "John Wick"
+
+	return c.JSON(resp)
+}
+
+func testParam(c Context) error {
+	type Response struct {
+		Name string `json:"name"`
+	}
+	var resp Response
+	resp.Name = c.PathValue("name")
+
+	return c.JSON(resp)
+}
+
+func testPost(c Context) error {
+	type Response struct {
+		Name string `json:"name"`
+	}
+	var resp Response
+
+	err := json.NewDecoder(c.Body).Decode(&resp)
+	if err != nil {
+		c.FAIL(err, http.StatusBadRequest)
+	}
+
+	return c.JSON(resp)
+}
+
+func testPut(c Context) error {
+	type Response struct {
+		Name string `json:"name"`
+		Age  int    `json:"age"`
+	}
+	var resp Response
+	err := json.NewDecoder(c.Body).Decode(&resp)
+	if err != nil {
+		c.FAIL(err, http.StatusBadRequest)
+	}
+	resp.Name = c.PathValue("name")
+	return c.JSON(resp)
+}
+
+func testDelete(c Context) error {
+	name := c.PathValue("name")
+	return c.JSON(map[string]string{"message": fmt.Sprintf("Deleteded %s", name)})
+}
+
 func TestHandler(t *testing.T) {
 	// Setup
-	e := ghttp.New()
+	e := New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
-	e.Context = *ghttp.NewContext(rec, req)
+	e.Context = *NewContext(rec, req)
 	test(e.Context)
 
 	type Response struct {
@@ -41,11 +93,11 @@ func TestHandler(t *testing.T) {
 
 func TestPathHandler(t *testing.T) {
 	// Setup
-	e := ghttp.New()
+	e := New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.SetPathValue("name", "stich")
 	rec := httptest.NewRecorder()
-	e.Context = *ghttp.NewContext(rec, req)
+	e.Context = *NewContext(rec, req)
 	testParam(e.Context)
 
 	type Response struct {
@@ -66,10 +118,10 @@ func TestPathHandler(t *testing.T) {
 
 func TestPostHandler(t *testing.T) {
 	payload, _ := json.Marshal(post)
-	e := ghttp.New()
+	e := New()
 	req := httptest.NewRequest(http.MethodGet, "/", bytes.NewReader(payload))
 	rec := httptest.NewRecorder()
-	e.Context = *ghttp.NewContext(rec, req)
+	e.Context = *NewContext(rec, req)
 	testPost(e.Context)
 
 	type Response struct {
@@ -90,11 +142,11 @@ func TestPostHandler(t *testing.T) {
 
 func TestPutHandler(t *testing.T) {
 	payload, _ := json.Marshal(put)
-	e := ghttp.New()
+	e := New()
 	req := httptest.NewRequest(http.MethodGet, "/", bytes.NewReader(payload))
 	req.SetPathValue("name", "John")
 	rec := httptest.NewRecorder()
-	e.Context = *ghttp.NewContext(rec, req)
+	e.Context = *NewContext(rec, req)
 	testPut(e.Context)
 
 	type Response struct {
@@ -116,11 +168,11 @@ func TestPutHandler(t *testing.T) {
 
 func TestDeleteHandler(t *testing.T) {
 	// Setup
-	e := ghttp.New()
+	e := New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.SetPathValue("name", "stich")
 	rec := httptest.NewRecorder()
-	e.Context = *ghttp.NewContext(rec, req)
+	e.Context = *NewContext(rec, req)
 	testDelete(e.Context)
 
 	if rec.Result().StatusCode != 200 {
