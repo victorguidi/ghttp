@@ -6,10 +6,12 @@ Echo framework return error on its handlers, and thats something that I believe 
 package ghttp
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 )
 
 type Ghttp struct {
@@ -65,6 +67,38 @@ func New() *Ghttp {
 		Context{},
 		chain(),
 	}
+}
+
+// Middleware function for basic authentication
+func BasicAuth(next http.HandlerFunc, username, password string) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		if auth == "" {
+			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+			http.Error(w, "Authorization required", http.StatusUnauthorized)
+			return
+		}
+
+		parts := strings.SplitN(auth, " ", 2)
+		if len(parts) != 2 || parts[0] != "Basic" {
+			http.Error(w, "Bad request", http.StatusBadRequest)
+			return
+		}
+
+		credentials, err := base64.StdEncoding.DecodeString(parts[1])
+		if err != nil {
+			http.Error(w, "Bad request", http.StatusBadRequest)
+			return
+		}
+
+		pair := strings.SplitN(string(credentials), ":", 2)
+		if len(pair) != 2 || pair[0] != username || pair[1] != password {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func NewContext(w http.ResponseWriter, r *http.Request) *Context {
