@@ -64,7 +64,7 @@ func cors(next http.HandlerFunc) http.HandlerFunc {
 }
 
 // Middleware function for basic authentication
-func BasicAuth(next http.HandlerFunc, username, password string) http.HandlerFunc {
+func SimpleAuth(next http.HandlerFunc, username, password string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
 		if auth == "" {
