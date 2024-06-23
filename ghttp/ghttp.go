@@ -14,6 +14,8 @@ import (
 	"strings"
 )
 
+var ORIGIN string
+
 type Ghttp struct {
 	*http.ServeMux
 	Context
@@ -47,7 +49,7 @@ func chain(middleware ...Middleware) Middleware {
 // Add CORS headers to the request
 func cors(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Origin", ORIGIN)
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
@@ -58,14 +60,6 @@ func cors(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		next(w, r)
-	}
-}
-
-func New() *Ghttp {
-	return &Ghttp{
-		http.NewServeMux(),
-		Context{},
-		chain(),
 	}
 }
 
@@ -101,12 +95,21 @@ func BasicAuth(next http.HandlerFunc, username, password string) http.HandlerFun
 	})
 }
 
+func New() *Ghttp {
+	return &Ghttp{
+		http.NewServeMux(),
+		Context{},
+		chain(),
+	}
+}
+
 func NewContext(w http.ResponseWriter, r *http.Request) *Context {
 	return &Context{w, r}
 }
 
 // Add CORS to the chain of middlewares
-func (g *Ghttp) CORS() *Ghttp {
+func (g *Ghttp) CORS(origin string) *Ghttp {
+	ORIGIN = origin
 	g.middleware = chain(cors)
 	return g
 }
